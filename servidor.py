@@ -18,7 +18,7 @@ Donde <uid_a> y <uid_b> representan los identificadores de usuario de dos
 usuarios con uid_a < uid_b y uid_a != uid_b.
 
 Al iniciar el servidor se abrirá un puerto donde se esperarán solicitudes 
-HTTP de tipo POST a /chat. Cada solicitud tendrá un cuerpo en formato JSON con
+HTTP de tipo POST a /. Cada solicitud tendrá un cuerpo en formato JSON con
 el siguiente contenido:
 {
     "remitente": <uid>
