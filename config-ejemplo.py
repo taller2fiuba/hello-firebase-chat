@@ -1,3 +1,7 @@
+# Hacer una copia de este archivo llamada config.py editando lo que
+# corresponda.
+#
+
 # Ruta al archivo JSON de credenciales de Firebase
 ARCHIVO_CREDENTIALS = 'obtener-desde-firebase.json'
 
