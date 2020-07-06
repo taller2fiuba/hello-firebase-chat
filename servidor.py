@@ -10,10 +10,24 @@ Cada usuario recibe los mensajes de chat directamente desde Firebase.
 
 La base de datos se estructurará de la siguiente manera:
  - chats/
+   - <uid_a>
+     - <uid_b>
+       - timestamp: <segundos enteros desde la época Unix con signo negativo>
+       - ultimoMensaje: <str>
+   - <uid_b>
+     - <uid_a>
+       - timestamp: <segundos enteros desde la época Unix con signo negativo>
+       - ultimoMensaje: <str>
+
+ - mensajes/
    - <uid_a>-<uid_b>/
       - <mensaje>
+        - enviadoPor: <uid_a>|<uid_b>
+        - mensaje: <str>
+        - timestamp: <segundos enteros desde la época Unix>
       - <mensaje>
       - <mensaje>
+
 Donde <uid_a> y <uid_b> representan los identificadores de usuario de dos
 usuarios con uid_a < uid_b y uid_a != uid_b.
 
@@ -37,17 +51,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import firebase_admin
 from firebase_admin import credentials, db
 
-# Credenciales del SDK de Firebase
-ARCHIVO_CREDENTIALS = 'obtener-desde-consola-de-firebase.json'
-
-# Identificador de la base de datos a utilizar
-URL_DB = 'https://chotuve-a8587.firebaseio.com/'
-
-# Recurso dentro de la base de datos donde se almacenaran los chats
-RECURSO_DB = 'chats'
-
-# Puerto a utilizar para recibir requests HTTP
-PUERTO_HTTP = 8080
+from config import *
 
 class ChatServer(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -66,22 +70,40 @@ class ChatServer(BaseHTTPRequestHandler):
 
 cred = credentials.Certificate(ARCHIVO_CREDENTIALS)
 firebase_admin.initialize_app(cred, {'databaseURL': URL_DB})
-db_ref = db.reference(f'/hello-firebase/{RECURSO_DB}')
+db_chats_ref = db.reference(f'/hello-firebase/{RECURSO_DB_CHATS}')
+db_mensajes_ref = db.reference(f'/hello-firebase/{RECURSO_DB_MENSAJES}')
 
 def enviar_mensaje(mensaje, remitente: int, destinatario: int):
     print(f'{remitente} > {destinatario}: {mensaje}')
+
     nombre_chat = f'{remitente}-{destinatario}'
     if remitente > destinatario:
         nombre_chat = f'{destinatario}-{remitente}'
     
-    child = db_ref.child(nombre_chat)
-    child.push({
-        'enviado_por': remitente, 
-        'hora': datetime.datetime.now().isoformat(), 
-        'mensaje': mensaje
-    })
+    # Construir el mensaje
+    mensaje_db_data = {
+        'enviadoPor': remitente,
+        'mensaje': mensaje,
+        'timestamp': int(datetime.datetime.now().timestamp())
+    }
 
-with HTTPServer(('localhost', PUERTO_HTTP), ChatServer) as httpd:
-    print(f'Escuchando en localhost:{PUERTO_HTTP}', file=sys.stderr)
-    httpd.serve_forever()
+    # Y su metainformación
+    chat_db_data = {
+        'timestamp': -mensaje_db_data['timestamp'],
+        'ultimoMensaje': mensaje_db_data['mensaje']
+    }
+
+    # Agregar el mensaje al chat
+    db_mensajes_ref.child(nombre_chat).push(mensaje_db_data)
+
+    # Actualizar metainformación d -> r; y r -> d.
+    db_chats_ref.child(str(remitente)).child(str(destinatario)).set(chat_db_data)
+    db_chats_ref.child(str(destinatario)).child(str(remitente)).set(chat_db_data)
+
+try:
+    with HTTPServer(('localhost', PUERTO_HTTP), ChatServer) as httpd:
+        print(f'Escuchando en localhost:{PUERTO_HTTP}', file=sys.stderr)
+        httpd.serve_forever()
+except KeyboardInterrupt:
+    pass
 
