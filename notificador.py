@@ -14,7 +14,7 @@ RECURSO_DB_NOTIFICACIONES='notificaciones'
 
 cred = credentials.Certificate(ARCHIVO_CREDENTIALS)
 fb = firebase_admin.initialize_app(cred, {'databaseURL': URL_DB}, name='chotuve-notificaciones')
-db_notificaciones = db.reference(f'/app-server-prod/{RECURSO_DB_NOTIFICACIONES}', app=fb)
+db_notificaciones = db.reference(f'/app-server-dev/{RECURSO_DB_NOTIFICACIONES}', app=fb)
 
 if not len(sys.argv) == 2:
     print('Uso: notificador <id de usuario>', file=sys.stderr)
